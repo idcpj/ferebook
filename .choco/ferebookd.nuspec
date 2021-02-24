@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>ferebookd</id>
+    <version>0.02</version>
+    <title>ferebookd</title>
+    <authors>idcpj</authors>
+    <owners>idcpj</owners>
+    <projectUrl>https://github.com/idcpj/ferebook</projectUrl>
+    <packageSourceUrl>https://github.com/idcpj/ferebook</packageSourceUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>下载 ferebook 文件 </description>
+    <summary>下载 ferebook 文件</summary>
+    <tags>ferebook download</tags>
+  </metadata>
+</package>

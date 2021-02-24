@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/766b/mobi"
+	"os"
+	"os/signal"
 )
 
 var (
@@ -26,6 +28,13 @@ func main() {
 	//cover="http://files.epubee.com/getCover.ashx?fpath=ea/eaf6561235ff5333b4f70f8cbf93781b_s.jpg"
 
 	flag.Parse()
+
+	if name == "" ||
+		url == "" {
+
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	book := NewFereBook(url, cover)
 	book.Run()
@@ -53,4 +62,8 @@ func main() {
 
 	// Output MOBI File
 	m.Write()
+
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, os.Kill)
+	<-s
 }
