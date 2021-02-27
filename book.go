@@ -16,10 +16,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 )
 
 type Content struct {
@@ -30,7 +30,6 @@ type Content struct {
 
 type Ferebook struct {
 	baseUrl string
-	Urls    []string
 
 	// 章节
 	chap []*Content
@@ -56,7 +55,6 @@ func NewFereBook(url string, cover string) *Ferebook {
 
 	f.client = &http.Client{}
 	f.parse = NewParseHtml()
-	f.chap = make([]*Content, 200)
 
 	return f
 }
@@ -66,9 +64,57 @@ func (f *Ferebook) Run() {
 	if f.cover != "" {
 		go f.getCover()
 	}
-	f.getContent()
 
-	f.parseContent()
+	f.readUrl()
+
+}
+
+func (f *Ferebook) readUrl() {
+
+	for i := 0; i < 200; i++ {
+		url := fmt.Sprintf("%vtext%05d.html", f.baseUrl, i)
+		fmt.Printf("获取 %s 内容\n ", url)
+
+		resp, err := f.client.Get(url)
+		fmt.Printf("%+v\n", resp)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			log.Print("状态码不正确")
+			_ = resp.Body.Close()
+			return
+		}
+
+		htmlCon, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if len(htmlCon) == 0 {
+			fmt.Printf("%+v\n", "获取内容为0")
+			_ = resp.Body.Close()
+			return
+		}
+
+		c := &Content{
+			Url: url,
+		}
+
+		f.parse.Run(bytes.NewReader(htmlCon))
+		title := f.parse.ParseTitle()
+		content := f.parse.ParseContent()
+
+		c.title = title
+
+		c.Content = []byte(content)
+
+		f.chap = append(f.chap, c)
+	}
+
 }
 
 func (f *Ferebook) getCover() {
@@ -88,7 +134,9 @@ func (f *Ferebook) getCover() {
 
 	if !checkDir("data") {
 		err := os.Mkdir("data", os.ModeDir)
-		panic(err)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	img, err := os.Create("data/cover.jpg")
@@ -101,78 +149,6 @@ func (f *Ferebook) getCover() {
 		panic(err)
 	}
 	fmt.Printf("成功获取封面信息\n")
-}
-
-func (f *Ferebook) getContent() {
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < 200; i++ {
-		wg.Add(1)
-
-		go func(i int) {
-			defer wg.Done()
-
-			url := fmt.Sprintf("%vtext%05d.html", f.baseUrl, i)
-			fmt.Printf("获取 %s 内容\n ", url)
-			resp, err := f.client.Get(url)
-			if err != nil {
-				panic(err)
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				return
-			}
-
-			htmlCon, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			c := &Content{
-				Url:     url,
-				title:   "",
-				Content: htmlCon,
-			}
-
-			f.chap[i] = c
-
-			resp.Body.Close()
-
-		}(i)
-
-	}
-
-	wg.Wait()
-
-	for k, v := range f.chap {
-		if v == nil {
-			f.chap = f.chap[:k]
-			break
-		}
-	}
-
-	fmt.Printf("获取完成\n")
-}
-
-func (f *Ferebook) parseContent() {
-	var wg sync.WaitGroup
-
-	wg.Add(len(f.chap))
-
-	for k, _ := range f.chap {
-		go func(k int) {
-			defer wg.Done()
-
-			f.parse.Run(bytes.NewReader(f.chap[k].Content))
-			title := f.parse.ParseTitle()
-			content := f.parse.ParseContent()
-			f.chap[k].title = title
-			f.chap[k].Content = []byte(content)
-		}(k)
-	}
-
-	wg.Wait()
 }
 
 func checkDir(dir string) bool {

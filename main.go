@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/766b/mobi"
+	"log"
 	"os"
-	"os/signal"
 )
 
 var (
@@ -20,11 +21,10 @@ func init() {
 }
 
 func main() {
-	//name="希腊古典神话"
-	//url="http://reader.epubee.com/books/mobile/ba/baddff340b4defb93fe29d15889bab10/text00000.html"
-	//cover="http://files.epubee.com/getCover.ashx?fpath=c6/c6c17b6f11f12e20cdcf42d6078036d5_s.jpg"
+
+	log.SetFlags(log.Lshortfile)
 	//name="童年的终结"
-	//url="http://reader.epubee.com/books/mobile/ed/edf00b57d6425a73bee490de44942a7e/"
+	//url="http://reader.epubee.com/books/mobile/bb/bbca714c0c8f3140af2e8279b01ab22c/text00000.html"
 	//cover="http://files.epubee.com/getCover.ashx?fpath=ea/eaf6561235ff5333b4f70f8cbf93781b_s.jpg"
 
 	flag.Parse()
@@ -48,22 +48,25 @@ func main() {
 	m.Compression(mobi.CompressionNone)
 
 	// Add cover image
-	m.AddCover("data/cover.jpg", "data/cover.jpg")
+	if cover != "" {
+		m.AddCover("data/cover.jpg", "data/cover.jpg")
+	}
 
 	// Meta data
 	m.NewExthRecord(mobi.EXTH_DOCTYPE, "EBOK")
 	m.NewExthRecord(mobi.EXTH_AUTHOR, "Book Author Name")
 	m.NewExthRecord(mobi.EXTH_TITLE, name)
 	// See exth.go for additional EXTH record IDs
-
+	if len(book.chap) == 0 {
+		fmt.Printf("%+v\n", "获取长度为0")
+		return
+	}
 	for _, v := range book.chap {
 		m.NewChapter(v.title, v.Content)
 	}
 
+	//m.NewChapter("asdasd",[]byte("asdasd"))
 	// Output MOBI File
 	m.Write()
-
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt, os.Kill)
-	<-s
+	fmt.Printf("%+v\n", "完成")
 }
